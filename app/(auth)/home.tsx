@@ -1,12 +1,14 @@
 import React from 'react';
-import { useNavigation } from '@react-navigation/native';
+
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5, Entypo, Feather } from '@expo/vector-icons';
+import { useAuth,useUser } from '@clerk/clerk-expo';
 
 
 
 export default function Home() {
   
+  const {user} = useUser();
 
   return (
     <View style={styles.container}>
@@ -16,7 +18,7 @@ export default function Home() {
           <Ionicons name="settings-outline" size={28} />
         </TouchableOpacity>
         <Text style={styles.logo}>📈 GES Stock</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+        <TouchableOpacity >
           <Ionicons name="log-out-outline" size={28} />
         </TouchableOpacity>
       </View>
@@ -25,7 +27,9 @@ export default function Home() {
       <View style={styles.userCard}>
         <View style={styles.userLeft}>
           <Ionicons name="person-circle-outline" size={36} />
-          <Text style={styles.welcome}>Bom dia, <Text style={styles.username}>GABRIEL</Text></Text>
+          <Text style={styles.welcome}>
+                Bom dia, <Text style={styles.username}>{user?.firstName ?? ''}</Text>
+          </Text>
         </View>
         <Text style={styles.store}>Loja <Text style={styles.storeName}>LedOeste</Text></Text>
       </View>
