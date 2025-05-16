@@ -1,22 +1,5 @@
-import {Redirect ,Stack} from "expo-router";
-import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
-import { Header } from "react-native/Libraries/NewAppScreen";
+import { Stack } from "expo-router";
 
-export default function StackPage(){
-
-    const{isSignedIn} = useAuth();
-    
-    return(
-        <Stack>
-            <Stack.Screen
-                name="home"
-                redirect={!isSignedIn}
-            />
-            <Stack.Screen
-                name="profile"
-                redirect={!isSignedIn}
-            
-            />
-        </Stack>
-    );
-};
+export default function AuthLayout() {
+  return <Stack screenOptions={{ headerShown: false }} />;
+}

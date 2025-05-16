@@ -1,27 +1,5 @@
-import {Stack} from "expo-router";
-import { Header } from "react-native/Libraries/NewAppScreen";
+import { Stack } from "expo-router";
 
-export default function PublicLayout(){
-    return(
-        <Stack>
-            <Stack.Screen
-                name="inicial"
-                
-            />
-            <Stack.Screen
-                name="login"
-                
-            />
-            <Stack.Screen
-                name="forgot"
-                
-            />
-            <Stack.Screen
-                name="register"
-            
-            />
-        </Stack>
-
-    )
-
+export default function PublicLayout() {
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

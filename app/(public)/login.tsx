@@ -7,11 +7,26 @@ import * as Animatable from 'react-native-animatable'
 
 export default function Login(){
 
+    const {isLoaded,setActive,signIn} = useSignIn();
+
     const [email,setEmail] = useState("");
     const [password,setPassword] = useState("");   
 
-    function handleSignIn (){
+    async function handleSignIn (){
+        if(!isLoaded) return;
 
+        try{        
+
+            const signInUser = await signIn.create({
+                identifier:email,
+                password:password
+            })  
+
+            await setActive({session: signInUser.createdSessionId})
+ 
+        }catch(err){
+            alert(err)
+        }
     } 
 
     return(
@@ -48,14 +63,12 @@ export default function Login(){
                 </TouchableOpacity>
             </Link>
             
-                <TouchableOpacity
-                style={styles.button}
-                >
+                <TouchableOpacity style={styles.button} onPress={handleSignIn}>
                     <Text style={styles.buttonText}>Acessar</Text>
                 </TouchableOpacity>
             
             <Link href={'/(public)/register'} asChild>
-                <TouchableOpacity style={styles.buttonRegister} onPress={handleSignIn}>
+                <TouchableOpacity style={styles.buttonRegister} >
                     <Text style={styles.registerText}>Não possui conta? Cadastre-se!</Text>
                 </TouchableOpacity>
             </Link>

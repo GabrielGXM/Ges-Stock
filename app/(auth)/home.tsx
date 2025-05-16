@@ -1,5 +1,5 @@
 import React from 'react';
-
+import { useRouter } from 'expo-router';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5, Entypo, Feather } from '@expo/vector-icons';
 import { useAuth,useUser } from '@clerk/clerk-expo';
@@ -8,7 +8,15 @@ import { useAuth,useUser } from '@clerk/clerk-expo';
 
 export default function Home() {
   
+  
   const {user} = useUser();
+  const { signOut } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await signOut();
+    router.replace('/(public)/welcome'); 
+  };
 
   return (
     <View style={styles.container}>
@@ -18,7 +26,7 @@ export default function Home() {
           <Ionicons name="settings-outline" size={28} />
         </TouchableOpacity>
         <Text style={styles.logo}>📈 GES Stock</Text>
-        <TouchableOpacity >
+        <TouchableOpacity onPress={handleLogout} >
           <Ionicons name="log-out-outline" size={28} />
         </TouchableOpacity>
       </View>
@@ -36,12 +44,12 @@ export default function Home() {
 
       <ScrollView contentContainerStyle={styles.body}>
         {/* Grid Buttons */}
-        <TouchableOpacity style={styles.box}>
+        <TouchableOpacity style={styles.box} onPress={() => router.push("(auth)/cadProd")}>
           <MaterialIcons name="post-add" size={30} />
           <Text style={styles.boxText}>Cadastrar produtos</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.box}>
+        <TouchableOpacity style={styles.box}onPress={() => router.push("(auth)/VizuEstoq")}>
           <FontAwesome5 name="search" size={24} />
           <Text style={styles.boxText}>Visualizar estoque</Text>
         </TouchableOpacity>
@@ -56,7 +64,7 @@ export default function Home() {
           <Text style={styles.boxText}>Gerar QrCode</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.box}>
+        <TouchableOpacity style={styles.box}onPress={() => router.push("(auth)/cadCate")}>
           <Entypo name="flow-tree" size={30} />
           <Text style={styles.boxText}>Cadastrar categorias</Text>
         </TouchableOpacity>

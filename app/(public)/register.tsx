@@ -11,11 +11,12 @@ import {
   Platform
 } from 'react-native';
 import { useSignUp } from '@clerk/clerk-expo';
-import { Link } from 'expo-router';
+import { Link,useRouter } from 'expo-router';
 import * as Animatable from 'react-native-animatable';
 
 export default function Register() {
   const { isLoaded, setActive, signUp } = useSignUp();
+  const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -60,6 +61,7 @@ export default function Register() {
         code,
       });
       await setActive({ session: completeSignUp.createdSessionId });
+      router.replace('/home');
     } catch (e) {
       alert('Código inválido ou expirado.');
     }

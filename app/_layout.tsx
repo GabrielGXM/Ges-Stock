@@ -8,8 +8,7 @@ import { ActivityIndicator, View } from "react-native";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
-function InitialLayout () {
-
+function InitialLayout() {
   const { isLoaded, isSignedIn } = useAuth();
   const segments = useSegments();
   const router = useRouter();
@@ -21,7 +20,7 @@ function InitialLayout () {
 
     if (!isSignedIn && !inAuthGroup) {
       router.replace("/(public)/welcome");
-    } else if (isSignedIn && inAuthGroup) {
+    } else if (isSignedIn && !inAuthGroup) {
       router.replace("/(auth)/home");
     }
   }, [isLoaded, isSignedIn]);
@@ -40,10 +39,10 @@ function InitialLayout () {
 export default function RootLayout() {
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <InitialLayout/>
+      <InitialLayout />
     </ClerkProvider>
   );
-};
+}
 
 
 
