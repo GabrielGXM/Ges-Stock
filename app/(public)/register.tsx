@@ -11,8 +11,9 @@ import {
   Platform
 } from 'react-native';
 import { useSignUp } from '@clerk/clerk-expo';
-import { Link,useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import * as Animatable from 'react-native-animatable';
+import { supabase } from '../../utils/supabase'; // caminho para seu Supabase client
 
 export default function Register() {
   const { isLoaded, setActive, signUp } = useSignUp();
@@ -37,8 +38,8 @@ export default function Register() {
 
     try {
       await signUp.create({
-        emailAddress: email,
-        password: password,
+        emailAddress: email.toLowerCase(),
+        password,
         firstName,
         lastName,
         unsafeMetadata: {
@@ -57,10 +58,27 @@ export default function Register() {
     if (!isLoaded) return;
 
     try {
-      const completeSignUp = await signUp?.attemptEmailAddressVerification({
-        code,
-      });
+      const completeSignUp = await signUp.attemptEmailAddressVerification({ code });
       await setActive({ session: completeSignUp.createdSessionId });
+
+      // ✅ Criação manual na tabela usuarios
+      const userId = signUp.createdUserId; // Clerk user ID
+      const { error } = await supabase.from('usuarios').insert([
+        {
+        id: userId,
+        nome: firstName,
+        sobrenome: lastName,
+        email,
+        empresa: companyName,
+      }
+      ]);
+
+      if (error) {
+        console.error('Erro ao inserir no Supabase:', error.message);
+        alert('Erro ao salvar dados no banco.');
+        return;
+      }
+
       router.replace('/home');
     } catch (e) {
       alert('Código inválido ou expirado.');
@@ -123,6 +141,7 @@ export default function Register() {
                     onChangeText={setPassword}
                     value={password}
                     secureTextEntry
+                    autoCapitalize="none"
                   />
 
                   <Text style={styles.title}>Confirme sua senha</Text>
@@ -132,6 +151,7 @@ export default function Register() {
                     onChangeText={setConfirmPassword}
                     value={confirmPassword}
                     secureTextEntry
+                    autoCapitalize="none"
                   />
 
                   <TouchableOpacity style={styles.button} onPress={handleSignUp}>

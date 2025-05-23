@@ -36,10 +36,10 @@ export default function Home() {
         <View style={styles.userLeft}>
           <Ionicons name="person-circle-outline" size={36} />
           <Text style={styles.welcome}>
-                Bom dia, <Text style={styles.username}>{user?.firstName ?? ''}</Text>
+                Bem vindo, <Text style={styles.username}>{user?.firstName ?? ''}</Text>
           </Text>
         </View>
-        <Text style={styles.store}>Loja <Text style={styles.storeName}>LedOeste</Text></Text>
+        <Text style={styles.store}>Loja <Text style={styles.storeName}>{(user?.unsafeMetadata?.companyName as string) ?? ''}</Text></Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
