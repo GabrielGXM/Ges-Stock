@@ -1,116 +1,145 @@
-import { Modal, Alert } from 'react-native'; // Adicionar Alert
-import { supabase } from '../../utils/supabase';
-import React, { useState, useEffect, useCallback } from 'react'; // Adicionar useCallback
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native'; // Adicionar ActivityIndicator
+import { Modal, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useAuth } from "@clerk/clerk-expo";
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Importar AsyncStorage
 
-// Tipagem para a categoria
+// Converte um número inteiro (centavos) para uma string de moeda formatada ($X.XX)
+const formatCentsToCurrency = (cents: number): string => {
+  if (isNaN(cents) || cents < 0) {
+    return "$0.00";
+  }
+  const actualCents = Math.round(Math.max(0, cents));
+  const str = String(actualCents).padStart(3, '0');
+  const integerPart = str.slice(0, -2);
+  const decimalPart = str.slice(-2);
+  return `$${integerPart}.${decimalPart}`;
+};
+
+// Converte uma string de input (com ou sem símbolos, letras, etc.) para um número inteiro (centavos)
+const parseCurrencyInputToCents = (text: string): number => {
+  const cleanText = text.replace(/[^0-9]/g, '');
+  if (!cleanText) {
+    return 0;
+  }
+  return parseInt(cleanText, 10);
+};
+
+// Tipagem para Categoria e Produto (para Async Storage)
 interface Categoria {
   id: string;
   nome: string;
+  userId: string; // Adicionado para identificar categorias por usuário
+}
+
+interface Produto {
+  id: string;
+  nome: string;
+  quantidade: number;
+  preco: number;
+  categoriaId: string; // Renomeado de categoria_id para consistência com JS
+  userId: string; // Adicionado para identificar produtos por usuário
 }
 
 export default function CadastroProduto() {
   const { userId, isLoaded } = useAuth();
   const [nome, setNome] = useState('');
   const [quantidade, setQuantidade] = useState('');
-  const [preco, setPreco] = useState('');
-  const [selectedCategoria, setSelectedCategoria] = useState<Categoria | null>(null); // Armazena o objeto categoria
+  const [precoCents, setPrecoCents] = useState(0); // Estado para o preço em CENTAVOS
+  const [selectedCategoria, setSelectedCategoria] = useState<Categoria | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [categoriasDisponiveis, setCategoriasDisponiveis] = useState<Categoria[]>([]);
   const [loadingCategorias, setLoadingCategorias] = useState(true);
-  const [savingProduct, setSavingProduct] = useState(false); // Estado para o salvamento do produto
+  const [savingProduct, setSavingProduct] = useState(false);
+
+  // Chaves para AsyncStorage
+  const CATEGORIAS_ASYNC_KEY = `user_${userId}_categorias`;
+  const PRODUTOS_ASYNC_KEY = `user_${userId}_produtos`;
 
   const fetchCategorias = useCallback(async () => {
-    if (!userId) return;
-    setLoadingCategorias(true);
-    const { data, error } = await supabase
-      .from('categorias')
-      .select('id, nome') // Selecionar id e nome
-      .eq('user_id', userId);
-
-    if (error) {
-      console.error("Erro ao carregar categorias:", error);
-      Alert.alert("Erro", "Não foi possível carregar as categorias disponíveis.");
-    } else if (data) {
-      setCategoriasDisponiveis(data);
+    if (!userId) {
+      setLoadingCategorias(false);
+      return;
     }
-    setLoadingCategorias(false);
-  }, [userId]);
+    setLoadingCategorias(true);
+    try {
+      const storedCategorias = await AsyncStorage.getItem(CATEGORIAS_ASYNC_KEY);
+      if (storedCategorias) {
+        setCategoriasDisponiveis(JSON.parse(storedCategorias));
+      }
+    } catch (e) {
+      console.error("Erro ao carregar categorias do Async Storage:", e);
+      Alert.alert("Erro", "Não foi possível carregar as categorias disponíveis.");
+    } finally {
+      setLoadingCategorias(false);
+    }
+  }, [userId, CATEGORIAS_ASYNC_KEY]);
 
   useEffect(() => {
     if (isLoaded && userId) {
       fetchCategorias();
+    } else if (isLoaded && !userId) {
+      setLoadingCategorias(false);
+      Alert.alert("Erro", "Você precisa estar logado para carregar categorias.");
     }
   }, [isLoaded, userId, fetchCategorias]);
 
   const handleSalvar = async () => {
-    if (savingProduct) return; // Evita cliques múltiplos
+    if (savingProduct) return;
 
-    if (!nome.trim() || !quantidade.trim() || !preco.trim() || !selectedCategoria || !userId) {
-      Alert.alert("Preencha todos os campos", "Por favor, preencha todos os dados do produto e selecione uma categoria.");
+    if (!nome.trim() || !quantidade.trim() || precoCents <= 0 || !selectedCategoria || !userId) { // Mudança aqui: precoCents deve ser > 0
+      Alert.alert("Preencha todos os campos", "Por favor, preencha todos os dados do produto, insira um preço válido e selecione uma categoria.");
       return;
     }
 
     const parsedQuantidade = parseInt(quantidade);
-    const parsedPreco = parseFloat(preco.replace(',', '.')); // Troca vírgula por ponto para parsear corretamente
 
     if (isNaN(parsedQuantidade) || parsedQuantidade <= 0) {
       Alert.alert("Quantidade inválida", "Por favor, insira uma quantidade numérica e positiva.");
       return;
     }
 
-    if (isNaN(parsedPreco) || parsedPreco <= 0) {
-      Alert.alert("Preço inválido", "Por favor, insira um preço numérico e positivo.");
-      return;
-    }
-
     setSavingProduct(true);
+    try {
+      const storedProdutos = await AsyncStorage.getItem(PRODUTOS_ASYNC_KEY);
+      const produtos: Produto[] = storedProdutos ? JSON.parse(storedProdutos) : [];
 
-    const { error } = await supabase.from('produtos').insert([{
-      nome,
-      quantidade: parsedQuantidade,
-      preco: parsedPreco,
-      categoria_id: selectedCategoria.id, // Já temos o ID da categoria
-      user_id: userId
-    }]);
+      const newProduto: Produto = {
+        id: Date.now().toString(),
+        nome: nome.trim(),
+        quantidade: parsedQuantidade,
+        preco: precoCents / 100, // Salva o preço como REAL (ex: 1.00)
+        categoriaId: selectedCategoria.id,
+        userId: userId,
+      };
 
-    setSavingProduct(false);
+      const updatedProdutos = [...produtos, newProduto];
+      await AsyncStorage.setItem(PRODUTOS_ASYNC_KEY, JSON.stringify(updatedProdutos));
 
-    if (error) {
-      console.error("Erro ao inserir produto:", error);
-      Alert.alert("Erro ao Salvar", `Não foi possível salvar o produto: ${error.message}`);
-    } else {
       Alert.alert("Sucesso", "Produto cadastrado com sucesso!");
       setNome('');
       setQuantidade('');
-      setPreco('');
-      setSelectedCategoria(null); // Limpa a categoria selecionada
+      setPrecoCents(0); // Reseta para 0 centavos
+      setSelectedCategoria(null);
+    } catch (e) {
+      console.error("Erro ao salvar produto no Async Storage:", e);
+      Alert.alert("Erro ao Salvar", "Não foi possível salvar o produto.");
+    } finally {
+      setSavingProduct(false);
     }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Cadastrar Produto</Text>
-      <TextInput
-        placeholder="Nome do produto"
-        style={styles.input}
-        value={nome}
-        onChangeText={setNome}
-      />
-      <TextInput
-        placeholder="Quantidade"
+      <TextInput placeholder="Nome do produto" style={styles.input} value={nome} onChangeText={setNome} />
+      <TextInput placeholder="Quantidade" style={styles.input} keyboardType="numeric" value={quantidade} onChangeText={setQuantidade} />
+      <TextInput // CAMPO DE PREÇO FORMATADO
+        placeholder="Preço ($0.00)"
         style={styles.input}
         keyboardType="numeric"
-        value={quantidade}
-        onChangeText={setQuantidade}
-      />
-      <TextInput
-        placeholder="Preço"
-        style={styles.input}
-        keyboardType="numeric"
-        value={preco}
-        onChangeText={setPreco}
+        value={formatCentsToCurrency(precoCents)}
+        onChangeText={(text) => setPrecoCents(parseCurrencyInputToCents(text))}
       />
 
       {loadingCategorias ? (
@@ -148,7 +177,7 @@ export default function CadastroProduto() {
               <ScrollView>
                 {categoriasDisponiveis.map((cat) => (
                   <TouchableOpacity
-                    key={cat.id} // Usar o ID da categoria
+                    key={cat.id}
                     onPress={() => {
                       setSelectedCategoria(cat);
                       setModalVisible(false);
@@ -174,7 +203,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     backgroundColor: '#f8f8f8',
-    flexGrow: 1, // Para permitir o ScrollView funcionar corretamente
+    flexGrow: 1,
   },
   header: {
     fontSize: 24,
@@ -192,7 +221,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#fff',
   },
-  inputSelect: { // Estilo para o TouchableOpacity que simula um input de seleção
+  inputSelect: {
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 8,
@@ -222,7 +251,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   buttonDisabled: {
-    backgroundColor: '#a0a0a0', // Cor para botão desabilitado
+    backgroundColor: '#a0a0a0',
   },
   buttonText: {
     color: '#fff',
@@ -239,8 +268,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     padding: 20,
     borderRadius: 10,
-    width: '85%', // Mais largo
-    maxHeight: '70%', // Altura máxima para o scroll
+    width: '85%',
+    maxHeight: '70%',
   },
   modalTitle: {
     fontSize: 20,

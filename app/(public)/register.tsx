@@ -8,12 +8,13 @@ import {
   ScrollView,
   SafeAreaView,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Alert // Importar Alert para mensagens
 } from 'react-native';
 import { useSignUp } from '@clerk/clerk-expo';
 import { Link, useRouter } from 'expo-router';
 import * as Animatable from 'react-native-animatable';
-import { supabase } from '../../utils/supabase'; // caminho para seu Supabase client
+
 
 export default function Register() {
   const { isLoaded, setActive, signUp } = useSignUp();
@@ -32,7 +33,7 @@ export default function Register() {
     if (!isLoaded) return;
 
     if (password !== confirmPassword) {
-      alert('As senhas não coincidem!');
+      Alert.alert('Erro', 'As senhas não coincidem!'); // Usar Alert para melhor UX
       return;
     }
 
@@ -50,7 +51,7 @@ export default function Register() {
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       setPendingEmailCode(true);
     } catch (e: any) {
-      alert(e.errors?.[0]?.message || 'Erro ao cadastrar.');
+      Alert.alert('Erro', e.errors?.[0]?.message || 'Erro ao cadastrar.'); // Usar Alert
     }
   }
 
@@ -61,27 +62,27 @@ export default function Register() {
       const completeSignUp = await signUp.attemptEmailAddressVerification({ code });
       await setActive({ session: completeSignUp.createdSessionId });
 
-      // ✅ Criação manual na tabela usuarios
-      const userId = signUp.createdUserId; // Clerk user ID
-      const { error } = await supabase.from('usuarios').insert([
-        {
-        id: userId,
-        nome: firstName,
-        sobrenome: lastName,
-        email,
-        empresa: companyName,
-      }
-      ]);
+      // REMOVER: Não precisamos mais inserir no Supabase, o Clerk já gerencia isso.
+      // const userId = signUp.createdUserId; // Clerk user ID
+      // const { error } = await supabase.from('usuarios').insert([
+      //   {
+      //   id: userId,
+      //   nome: firstName,
+      //   sobrenome: lastName,
+      //   email,
+      //   empresa: companyName,
+      // }
+      // ]);
+      // if (error) {
+      //   console.error('Erro ao inserir no Supabase:', error.message);
+      //   Alert.alert('Erro ao salvar dados no banco.');
+      //   return;
+      // }
 
-      if (error) {
-        console.error('Erro ao inserir no Supabase:', error.message);
-        alert('Erro ao salvar dados no banco.');
-        return;
-      }
-
-      router.replace('/home');
+      Alert.alert('Sucesso', 'Conta ativada com sucesso!'); // Mensagem de sucesso
+      router.replace('/home'); // Redireciona para a home
     } catch (e) {
-      alert('Código inválido ou expirado.');
+      Alert.alert('Erro', 'Código inválido ou expirado.'); // Usar Alert
     }
   }
 

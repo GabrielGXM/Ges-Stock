@@ -1,8 +1,10 @@
 import React from 'react';
 import { useRouter } from 'expo-router';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView,Platform,StatusBar,SafeAreaView,Alert } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5, Entypo, Feather } from '@expo/vector-icons';
 import { useAuth,useUser } from '@clerk/clerk-expo';
+import Constants from 'expo-constants';
+
 
 
 
@@ -14,22 +16,39 @@ export default function Home() {
   const router = useRouter();
 
   const handleLogout = async () => {
-    await signOut();
-    router.replace('/(public)/welcome'); 
+    Alert.alert( // Adicionar Alert para confirmação
+      "Confirmar Saída",
+      "Tem certeza que deseja sair da sua conta?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Sair",
+          onPress: async () => {
+            await signOut();
+            router.replace('/(public)/welcome');
+          }
+        }
+      ],
+      { cancelable: false } // Impede que o alerta seja fechado tocando fora
+    );
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity>
-          <Ionicons name="settings-outline" size={28} />
-        </TouchableOpacity>
-        <Text style={styles.logo}>📈 GES Stock</Text>
-        <TouchableOpacity onPress={handleLogout} >
-          <Ionicons name="log-out-outline" size={28} />
-        </TouchableOpacity>
-      </View>
+   <SafeAreaView style={styles.safeArea}> {/* Use styles.safeArea para padronizar */}
+      <View style={styles.container}>
+        {/* Header - Ajuste o paddingTop aqui para a Status Bar */}
+        <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : Constants.statusBarHeight + 10 }]}> {/* Adiciona altura da status bar + um pouco de padding extra */}
+          <TouchableOpacity>
+            <Ionicons name="settings-outline" size={28} />
+          </TouchableOpacity>
+          <Text style={styles.logo}>📈 GES Stock</Text>
+          <TouchableOpacity onPress={handleLogout} >
+            <Ionicons name="log-out-outline" size={28} />
+          </TouchableOpacity>
+        </View>
 
       {/* User Info */}
       <View style={styles.userCard}>
@@ -48,57 +67,55 @@ export default function Home() {
           <MaterialIcons name="post-add" size={30} />
           <Text style={styles.boxText}>Cadastrar produtos</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.box}onPress={() => router.push("(auth)/VizuEstoq")}>
-          <FontAwesome5 name="search" size={24} />
-          <Text style={styles.boxText}>Visualizar estoque</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.box}>
-          <Ionicons name="business-outline" size={30} />
-          <Text style={styles.boxText}>Cadastrar Empresa</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.box}>
-          <MaterialIcons name="qr-code" size={30} />
-          <Text style={styles.boxText}>Gerar QrCode</Text>
-        </TouchableOpacity>
-
         <TouchableOpacity style={styles.box}onPress={() => router.push("(auth)/cadCate")}>
           <Entypo name="flow-tree" size={30} />
           <Text style={styles.boxText}>Cadastrar categorias</Text>
         </TouchableOpacity>
-
         <TouchableOpacity style={styles.box}>
           <Feather name="bar-chart-2" size={30} />
           <Text style={styles.boxText}>Exportar dados</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.box}>
+          <MaterialIcons name="qr-code" size={30} />
+          <Text style={styles.boxText}>Gerar QrCode</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.boxVizu}onPress={() => router.push("(auth)/VizuEstoq")}>
+          <FontAwesome5 name="search" size={24} />
+          <Text style={styles.boxText}>Visualizar estoque</Text>
         </TouchableOpacity>
       </ScrollView>
 
       {/* Bottom Nav */}
       <View style={styles.bottomNav}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/(auth)/profile')}>
           <Ionicons name="person-outline" size={26} />
           <Text>Perfil</Text>
         </TouchableOpacity>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push('/(auth)/about')}>
           <Entypo name="info-with-circle" size={26} />
           <Text>Sobre</Text>
         </TouchableOpacity>
-        <TouchableOpacity>
-          <Entypo name="menu" size={26} />
-          <Text>Menu</Text>
-        </TouchableOpacity>
       </View>
     </View>
+  </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 50, backgroundColor: '#fff' },
+  safeArea: { // Novo estilo para SafeAreaView
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  container: { // Remova o paddingTop fixo daqui
+    flex: 1,
+    // paddingTop: 50, <--- REMOVER ESTA LINHA
+  },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginHorizontal: 20,
+    backgroundColor: '#fff', // Adicione um background para o header se ele for flutuante
+    paddingVertical: 10, // Ajuste o padding vertical conforme necessário
+    // paddingTop: já será calculado dinamicamente no componente
   },
   logo: { fontSize: 20, fontWeight: 'bold' },
   userCard: {
@@ -121,9 +138,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 10,
     gap: 10,
+    flexGrow: 1, // Permite que o ScrollView cresça
   },
   box: {
     width: '40%',
+    padding: 15,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#000',
+  },
+  boxVizu: {
+    width: '80%',
     padding: 15,
     backgroundColor: '#fff',
     borderRadius: 12,
