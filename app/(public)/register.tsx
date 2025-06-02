@@ -9,11 +9,13 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
-  Alert // Importar Alert para mensagens
+  Alert, // Importar Alert para mensagens
+  StatusBar // IMPORTAR StatusBar
 } from 'react-native';
 import { useSignUp } from '@clerk/clerk-expo';
 import { Link, useRouter } from 'expo-router';
 import * as Animatable from 'react-native-animatable';
+import Constants from 'expo-constants'; // IMPORTAR Constants
 
 
 export default function Register() {
@@ -33,7 +35,7 @@ export default function Register() {
     if (!isLoaded) return;
 
     if (password !== confirmPassword) {
-      Alert.alert('Erro', 'As senhas não coincidem!'); // Usar Alert para melhor UX
+      Alert.alert('Erro', 'As senhas não coincidem!');
       return;
     }
 
@@ -51,7 +53,7 @@ export default function Register() {
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       setPendingEmailCode(true);
     } catch (e: any) {
-      Alert.alert('Erro', e.errors?.[0]?.message || 'Erro ao cadastrar.'); // Usar Alert
+      Alert.alert('Erro', e.errors?.[0]?.message || 'Erro ao cadastrar.');
     }
   }
 
@@ -62,41 +64,38 @@ export default function Register() {
       const completeSignUp = await signUp.attemptEmailAddressVerification({ code });
       await setActive({ session: completeSignUp.createdSessionId });
 
-      // REMOVER: Não precisamos mais inserir no Supabase, o Clerk já gerencia isso.
-      // const userId = signUp.createdUserId; // Clerk user ID
-      // const { error } = await supabase.from('usuarios').insert([
-      //   {
-      //   id: userId,
-      //   nome: firstName,
-      //   sobrenome: lastName,
-      //   email,
-      //   empresa: companyName,
-      // }
-      // ]);
-      // if (error) {
-      //   console.error('Erro ao inserir no Supabase:', error.message);
-      //   Alert.alert('Erro ao salvar dados no banco.');
-      //   return;
-      // }
-
-      Alert.alert('Sucesso', 'Conta ativada com sucesso!'); // Mensagem de sucesso
-      router.replace('/home'); // Redireciona para a home
+      Alert.alert('Sucesso', 'Conta ativada com sucesso!');
+      router.replace('/home');
     } catch (e) {
-      Alert.alert('Erro', 'Código inválido ou expirado.'); // Usar Alert
+      Alert.alert('Erro', 'Código inválido ou expirado.');
     }
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#38a69d' }}>
+    <SafeAreaView style={styles.safeArea}> {/* Usar styles.safeArea para padronizar */}
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={styles.keyboardAvoidingView} // Usar estilo para KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={10}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? Constants.statusBarHeight + 10 : 0} // Ajustar offset para iOS se necessário
       >
         <View style={styles.container}>
           {!pendingEmailCode ? (
             <>
-              <Animatable.View animation="fadeInLeft" delay={500} style={styles.containerHeader}>
+              {/* 1. Ajustar paddingTop do containerHeader para a Status Bar */}
+              <Animatable.View
+                animation="fadeInLeft"
+                delay={500}
+                style={[
+                  styles.containerHeader,
+                  {
+                    paddingTop: Platform.select({
+                      android: StatusBar.currentHeight || 0,
+                      ios: Constants.statusBarHeight || 0,
+                      default: 0
+                    }) + 10 // Adiciona padding extra
+                  }
+                ]}
+              >
                 <Text style={styles.message}>Cadastre-se!</Text>
               </Animatable.View>
 
@@ -192,12 +191,19 @@ export default function Register() {
 }
 
 const styles = StyleSheet.create({
+  safeArea: { // Estilo para SafeAreaView
+    flex: 1,
+    backgroundColor: '#38a69d',
+  },
+  keyboardAvoidingView: { // Estilo para KeyboardAvoidingView
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: '#38a69d',
   },
   containerHeader: {
-    marginTop: 14,
+    // Removido marginTop: 14, paddingTop será dinâmico
     marginBottom: '8%',
     paddingStart: '5%',
   },

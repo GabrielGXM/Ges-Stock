@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, Modal, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, Modal, TextInput, ScrollView, SafeAreaView, Platform, StatusBar } from 'react-native';
 import { useAuth } from '@clerk/clerk-expo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MaterialIcons, Ionicons } from '@expo/vector-icons'; // Ícones para editar e excluir
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 
 // Converte um número inteiro (centavos) para uma string de moeda formatada ($X.XX)
 const formatCentsToCurrency = (cents: number): string => {
@@ -24,7 +25,8 @@ const parseCurrencyInputToCents = (text: string): number => {
   }
   return parseInt(cleanText, 10);
 };
-// Tipagens para Categoria e Produto (devem ser as mesmas que em cadProd.tsx e cadCate.tsx)
+
+// Tipagens para Categoria e Produto
 interface Categoria {
   id: string;
   nome: string;
@@ -35,9 +37,9 @@ interface Produto {
   id: string;
   nome: string;
   quantidade: number;
-  preco: number;
-  categoriaId: string; // ID da categoria a que pertence
-  userId: string; // ID do usuário a que pertence
+  preco: number; // Preço real (ex: 10.50)
+  categoriaId: string;
+  userId: string;
 }
 
 export default function VisualizarEstoque() {
@@ -194,33 +196,43 @@ export default function VisualizarEstoque() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Estoque Atual</Text>
-      {produtos.length === 0 ? (
-        <Text style={styles.emptyListText}>Nenhum produto cadastrado ainda.</Text>
-      ) : (
-        <FlatList
-          data={produtos}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.productCard}>
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{item.nome}</Text>
-                <Text>Qtde: {item.quantidade} | Preço: {formatCentsToCurrency(Math.round(item.preco * 100))}</Text> {/* Exibe preço formatado */}
-                <Text>Categoria: {getCategoryName(item.categoriaId)}</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <Text
+          style={[
+            styles.headerText,
+            { paddingTop: (Constants.statusBarHeight || 0) + 10 }
+          ]}
+        >
+          Estoque Atual
+        </Text>
+        {produtos.length === 0 ? (
+          <Text style={styles.emptyListText}>Nenhum produto cadastrado ainda.</Text>
+        ) : (
+          <FlatList
+            data={produtos}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.productCard}>
+                <View style={styles.productInfo}>
+                  <Text style={styles.productName}>{item.nome}</Text>
+                  <Text>Qtde: {item.quantidade} | Preço: {formatCentsToCurrency(Math.round(item.preco * 100))}</Text>
+                  <Text>Categoria: {getCategoryName(item.categoriaId)}</Text>
+                </View>
+                <View style={styles.productActions}>
+                  <TouchableOpacity onPress={() => handleEditPress(item)} style={styles.actionButton}>
+                    <MaterialIcons name="edit" size={24} color="#38a69d" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDeleteProduct(item.id, item.nome)} style={styles.actionButton}>
+                    <MaterialIcons name="delete" size={24} color="red" />
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={styles.productActions}>
-                <TouchableOpacity onPress={() => handleEditPress(item)} style={styles.actionButton}>
-                  <MaterialIcons name="edit" size={24} color="#38a69d" />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleDeleteProduct(item.id, item.nome)} style={styles.actionButton}>
-                  <MaterialIcons name="delete" size={24} color="red" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        />
-      )}
+            )}
+            contentContainerStyle={styles.flatListContentContainer}
+          />
+        )}
+      </View>
 
       {/* Modal de Edição de Produto */}
       <Modal visible={editModalVisible} animationType="slide" transparent={true}>
@@ -241,7 +253,7 @@ export default function VisualizarEstoque() {
                 value={editedProductQuantity}
                 onChangeText={setEditedProductQuantity}
               />
-              <TextInput // CAMPO DE PREÇO FORMATADO NO MODAL DE EDIÇÃO
+              <TextInput
                 placeholder="Preço ($0.00)"
                 style={styles.input}
                 keyboardType="numeric"
@@ -250,7 +262,7 @@ export default function VisualizarEstoque() {
               />
 
               {/* Seleção de Categoria dentro do Modal de Edição */}
-              <TouchableOpacity onPress={() => setCategorySelectModalVisible(true)} style={styles.inputSelect}> {/* Usa categorySelectModalVisible */}
+              <TouchableOpacity onPress={() => setCategorySelectModalVisible(true)} style={styles.inputSelect}>
                 <Text style={editedProductCategory ? styles.selectedText : styles.placeholderText}>
                   {editedProductCategory ? editedProductCategory.nome : 'Selecionar categoria'}
                 </Text>
@@ -267,8 +279,8 @@ export default function VisualizarEstoque() {
         </View>
       </Modal>
 
-      {/* Modal de Seleção de Categoria (AGORA USANDO categorySelectModalVisible) */}
-      <Modal visible={categorySelectModalVisible} animationType="slide" transparent={true}> {/* Usa categorySelectModalVisible */}
+      {/* Modal de Seleção de Categoria */}
+      <Modal visible={categorySelectModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Selecione uma Categoria</Text>
@@ -281,7 +293,7 @@ export default function VisualizarEstoque() {
                     key={cat.id}
                     onPress={() => {
                       setEditedProductCategory(cat);
-                      setCategorySelectModalVisible(false); // Fecha o modal de seleção de categoria
+                      setCategorySelectModalVisible(false);
                     }}
                     style={styles.modalItem}
                   >
@@ -296,17 +308,24 @@ export default function VisualizarEstoque() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    padding: 20,
     backgroundColor: '#f8f8f8',
   },
-  header: {
+  container: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  flatListContentContainer: {
+    flexGrow: 1,
+  },
+  headerText: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
@@ -324,11 +343,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#555',
   },
-  emptyListText: {
+  emptyListText: { // <<---- Este estilo estava correto aqui
     textAlign: 'center',
     marginTop: 50,
     fontSize: 16,
     color: '#777',
+  },
+  emptyCategoriesText: {
+  textAlign: 'center',
+  marginTop: 10,
+  color: '#777',
+  fontStyle: 'italic',
   },
   productCard: {
     backgroundColor: '#fff',
@@ -362,7 +387,6 @@ const styles = StyleSheet.create({
     marginLeft: 15,
     padding: 5,
   },
-  // Estilos do Modal (reutilizados de cadProd.tsx)
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
@@ -426,16 +450,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 18,
-  },
   buttonCancel: {
     backgroundColor: '#e0e0e0',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
+  },
+  buttonText: { // <<---- Este estilo estava correto aqui
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
   },
   buttonTextCancel: {
     color: '#333',
@@ -457,11 +481,5 @@ const styles = StyleSheet.create({
   closeModalButtonText: {
     color: '#333',
     fontWeight: 'bold',
-  },
-  emptyCategoriesText: { // <-- Verifique se este objeto está definido aqui
-    textAlign: 'center',
-    marginTop: 10,
-    color: '#777',
-    fontStyle: 'italic',
   },
 });

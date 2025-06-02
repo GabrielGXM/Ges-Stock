@@ -1,10 +1,13 @@
 // app/_layout.tsx
 
+// _layout.tsx
+
 import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { Slot, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
-import { ActivityIndicator, View, Text } from "react-native";
+import { ActivityIndicator, View, Text } from "react-native"; // Certifique-se de que Text está importado
+import { ThemeProvider } from '../utils/context/themedContext'; // <-- IMPORTAR ThemeProvider AQUI
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
@@ -26,10 +29,9 @@ function InitialLayout() {
   }, [isLoaded, isSignedIn]);
 
   if (!isLoaded) {
-     return (
+    return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" color="#38a69d" />
-        {/* --- ADICIONE UMA MENSAGEM DE CARREGAMENTO AQUI --- */}
         <Text style={{ marginTop: 10, color: '#555' }}>Carregando aplicativo...</Text>
       </View>
     );
@@ -41,7 +43,9 @@ function InitialLayout() {
 export default function RootLayout() {
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <InitialLayout />
+      <ThemeProvider> {/* <-- ENVOLVER AQUI InitialLayout com ThemeProvider */}
+        <InitialLayout />
+      </ThemeProvider>
     </ClerkProvider>
   );
 }

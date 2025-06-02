@@ -41,7 +41,7 @@ export default function Home() {
       <View style={styles.container}>
         {/* Header - Ajuste o paddingTop aqui para a Status Bar */}
         <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : Constants.statusBarHeight + 10 }]}> {/* Adiciona altura da status bar + um pouco de padding extra */}
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("(auth)/config")}>
             <Ionicons name="settings-outline" size={28} />
           </TouchableOpacity>
           <Text style={styles.logo}>📈 GES Stock</Text>
@@ -71,7 +71,7 @@ export default function Home() {
           <Entypo name="flow-tree" size={30} />
           <Text style={styles.boxText}>Cadastrar categorias</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.box}>
+        <TouchableOpacity style={styles.box}onPress={() => router.push("(auth)/exportData")}>
           <Feather name="bar-chart-2" size={30} />
           <Text style={styles.boxText}>Exportar dados</Text>
         </TouchableOpacity>

@@ -1,8 +1,9 @@
-import { Modal, Alert } from 'react-native';
+import { Modal, Alert, Platform, SafeAreaView } from 'react-native'; // REMOVER StatusBar daqui
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useAuth } from "@clerk/clerk-expo";
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Importar AsyncStorage
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants'; // Certifique-se de ter 'expo install expo-constants'
 
 // Converte um número inteiro (centavos) para uma string de moeda formatada ($X.XX)
 const formatCentsToCurrency = (cents: number): string => {
@@ -87,7 +88,7 @@ export default function CadastroProduto() {
   const handleSalvar = async () => {
     if (savingProduct) return;
 
-    if (!nome.trim() || !quantidade.trim() || precoCents <= 0 || !selectedCategoria || !userId) { // Mudança aqui: precoCents deve ser > 0
+    if (!nome.trim() || !quantidade.trim() || precoCents <= 0 || !selectedCategoria || !userId) {
       Alert.alert("Preencha todos os campos", "Por favor, preencha todos os dados do produto, insira um preço válido e selecione uma categoria.");
       return;
     }
@@ -130,86 +131,100 @@ export default function CadastroProduto() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Cadastrar Produto</Text>
-      <TextInput placeholder="Nome do produto" style={styles.input} value={nome} onChangeText={setNome} />
-      <TextInput placeholder="Quantidade" style={styles.input} keyboardType="numeric" value={quantidade} onChangeText={setQuantidade} />
-      <TextInput // CAMPO DE PREÇO FORMATADO
-        placeholder="Preço ($0.00)"
-        style={styles.input}
-        keyboardType="numeric"
-        value={formatCentsToCurrency(precoCents)}
-        onChangeText={(text) => setPrecoCents(parseCurrencyInputToCents(text))}
-      />
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Text
+          style={[
+            styles.headerText,
+            { paddingTop: (Constants.statusBarHeight || 0) + 10 } // USAR SOMENTE Constants.statusBarHeight
+          ]}
+        >
+          Cadastrar Produto
+        </Text>
+        <TextInput placeholder="Nome do produto" style={styles.input} value={nome} onChangeText={setNome} />
+        <TextInput placeholder="Quantidade" style={styles.input} keyboardType="numeric" value={quantidade} onChangeText={setQuantidade} />
+        <TextInput // CAMPO DE PREÇO FORMATADO
+          placeholder="Preço ($0.00)"
+          style={styles.input}
+          keyboardType="numeric"
+          value={formatCentsToCurrency(precoCents)}
+          onChangeText={(text) => setPrecoCents(parseCurrencyInputToCents(text))}
+        />
 
-      {loadingCategorias ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#38a69d" />
-          <Text style={{ marginLeft: 10 }}>Carregando categorias...</Text>
-        </View>
-      ) : (
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.inputSelect}>
-          <Text style={selectedCategoria ? styles.selectedText : styles.placeholderText}>
-            {selectedCategoria ? selectedCategoria.nome : 'Selecionar categoria'}
-          </Text>
-        </TouchableOpacity>
-      )}
-
-      <TouchableOpacity
-        style={[styles.button, savingProduct && styles.buttonDisabled]}
-        onPress={handleSalvar}
-        disabled={savingProduct}
-      >
-        {savingProduct ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Salvar</Text>
-        )}
-      </TouchableOpacity>
-
-      <Modal visible={modalVisible} animationType="slide" transparent={true}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Selecione uma Categoria</Text>
-            {categoriasDisponiveis.length === 0 ? (
-              <Text style={styles.emptyCategoriesText}>Nenhuma categoria disponível. Cadastre uma categoria primeiro.</Text>
-            ) : (
-              <ScrollView>
-                {categoriasDisponiveis.map((cat) => (
-                  <TouchableOpacity
-                    key={cat.id}
-                    onPress={() => {
-                      setSelectedCategoria(cat);
-                      setModalVisible(false);
-                    }}
-                    style={styles.modalItem}
-                  >
-                    <Text>{cat.nome}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-            <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeModalButton}>
-              <Text style={styles.closeModalButtonText}>Fechar</Text>
-            </TouchableOpacity>
+        {loadingCategorias ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color="#38a69d" />
+            <Text style={{ marginLeft: 10 }}>Carregando categorias...</Text>
           </View>
-        </View>
-      </Modal>
-    </ScrollView>
+        ) : (
+          <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.inputSelect}>
+            <Text style={selectedCategoria ? styles.selectedText : styles.placeholderText}>
+              {selectedCategoria ? selectedCategoria.nome : 'Selecionar categoria'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          style={[styles.button, savingProduct && styles.buttonDisabled]}
+          onPress={handleSalvar}
+          disabled={savingProduct}
+        >
+          {savingProduct ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Salvar</Text>
+          )}
+        </TouchableOpacity>
+
+        <Modal visible={modalVisible} animationType="slide" transparent={true}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Selecione uma Categoria</Text>
+              {categoriasDisponiveis.length === 0 ? (
+                <Text style={styles.emptyCategoriesText}>Nenhuma categoria disponível. Cadastre uma categoria primeiro.</Text>
+              ) : (
+                <ScrollView>
+                  {categoriasDisponiveis.map((cat) => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      onPress={() => {
+                        setSelectedCategoria(cat);
+                        setModalVisible(false);
+                      }}
+                      style={styles.modalItem}
+                    >
+                      <Text>{cat.nome}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeModalButton}>
+                <Text style={styles.closeModalButtonText}>Fechar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
+  safeArea: {
+    flex: 1,
     backgroundColor: '#f8f8f8',
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     flexGrow: 1,
   },
-  header: {
+  headerText: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
     color: '#333',
+    textAlign: 'center',
   },
   input: {
     borderWidth: 1,

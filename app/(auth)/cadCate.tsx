@@ -1,29 +1,30 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from "@clerk/clerk-expo";
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+// REMOVER ScrollView aqui: Já que FlatList fará o scroll principal
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ActivityIndicator, SafeAreaView, Platform, StatusBar } from 'react-native'; 
 import { MaterialIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Importar AsyncStorage
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants'; 
 
 // Tipagem para a categoria (para Async Storage)
 interface Categoria {
   id: string;
   nome: string;
-  userId: string; // Para associar a categoria ao usuário
+  userId: string;
 }
 
 export default function CadastroCategoria() {
-  const { userId, isLoaded } = useAuth(); // userId é o ID do Clerk
+  const { userId, isLoaded } = useAuth();
   const [categoria, setCategoria] = useState('');
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingCategory, setAddingCategory] = useState(false);
 
-  // Chave para AsyncStorage (única por usuário)
   const CATEGORIAS_KEY = `user_${userId}_categorias`;
 
-  // Função para carregar categorias do Async Storage
   const loadCategorias = useCallback(async () => {
-    if (!userId) { // Garante que userId está disponível
+    if (!userId) {
       setLoading(false);
       return;
     }
@@ -39,7 +40,7 @@ export default function CadastroCategoria() {
     } finally {
       setLoading(false);
     }
-  }, [userId, CATEGORIAS_KEY]); // Dependências do useCallback
+  }, [userId, CATEGORIAS_KEY]);
 
   useEffect(() => {
     if (isLoaded && userId) {
@@ -47,9 +48,8 @@ export default function CadastroCategoria() {
     } else if (isLoaded && !userId) {
       setLoading(false);
       Alert.alert("Erro de Autenticação", "Você precisa estar logado para gerenciar categorias.");
-      // Opcional: Aqui você pode adicionar um router.replace('/(public)/login'); para redirecionar
     }
-  }, [isLoaded, userId, loadCategorias]); // Dependências do useEffect
+  }, [isLoaded, userId, loadCategorias]);
 
   const adicionarCategoria = async () => {
     if (!categoria.trim()) {
@@ -64,15 +64,15 @@ export default function CadastroCategoria() {
     setAddingCategory(true);
     try {
       const newCategoria: Categoria = {
-        id: Date.now().toString(), // ID simples baseado no timestamp, ou um UUID real se preferir
+        id: Date.now().toString(),
         nome: categoria.trim(),
-        userId: userId, // Associar ao userId do Clerk
+        userId: userId,
       };
 
       const updatedCategorias = [...categorias, newCategoria];
       await AsyncStorage.setItem(CATEGORIAS_KEY, JSON.stringify(updatedCategorias));
-      setCategorias(updatedCategorias); // Atualiza o estado local
-      setCategoria(''); // Limpa o input
+      setCategorias(updatedCategorias);
+      setCategoria('');
       Alert.alert("Sucesso", "Categoria adicionada!");
     } catch (e) {
       console.error("Erro ao adicionar categoria no Async Storage:", e);
@@ -106,18 +106,18 @@ export default function CadastroCategoria() {
     );
   };
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#38a69d" />
-        <Text>Carregando categorias...</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Cadastrar Categoria</Text>
+  // --- COMPONENTE DE HEADER DA LISTA ---
+  // Este View conterá todo o conteúdo que antes estava ANTES da FlatList
+  const ListHeader = () => (
+    <View style={styles.listHeaderContainer}> {/* Novo container para o header da lista */}
+      <Text
+        style={[
+          styles.headerText,
+          { paddingTop: (Constants.statusBarHeight || 0) + 10 }
+        ]}
+      >
+        Cadastrar Categoria
+      </Text>
       <TextInput
         placeholder="Nome da categoria"
         style={styles.input}
@@ -131,6 +131,23 @@ export default function CadastroCategoria() {
           <Text style={styles.buttonText}>Adicionar</Text>
         )}
       </TouchableOpacity>
+    </View>
+  );
+  // --- FIM DO COMPONENTE DE HEADER DA LISTA ---
+
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#38a69d" />
+        <Text>Carregando categorias...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      {/* A FlatList AGORA é o componente de rolagem principal */}
       <FlatList
         data={categorias}
         keyExtractor={(item) => item.id}
@@ -145,22 +162,35 @@ export default function CadastroCategoria() {
         ListEmptyComponent={() => (
           <Text style={styles.emptyListText}>Nenhuma categoria cadastrada ainda.</Text>
         )}
+        // Adicione o ListHeaderComponent aqui
+        ListHeaderComponent={ListHeader}
+        // Adicione estilo ao conteúdo geral da lista via contentContainerStyle
+        contentContainerStyle={styles.flatListContentContainer}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
+  safeArea: {
     flex: 1,
     backgroundColor: '#f8f8f8',
   },
-  header: {
+  flatListContentContainer: { // Novo estilo para o contentContainerStyle da FlatList
+    paddingHorizontal: 20, // Mantém o padding horizontal
+    paddingBottom: 20, // Mantém o padding inferior
+    flexGrow: 1, // Permite que a lista ocupe todo o espaço disponível
+  },
+  listHeaderContainer: { // NOVO estilo para o container do cabeçalho da lista
+    // Nenhum padding horizontal aqui, pois flatListContentContainer já tem
+    marginBottom: 20, // Espaço entre o header e a lista
+  },
+  headerText: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 20, // Espaço abaixo do texto do header
     color: '#333',
+    textAlign: 'center',
   },
   input: {
     borderWidth: 1,
@@ -212,5 +242,22 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 16,
     color: '#777',
+  },
+  closeModalButton: {
+    marginTop: 20,
+    backgroundColor: '#e0e0e0',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  closeModalButtonText: {
+    color: '#333',
+    fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
   }
 });
