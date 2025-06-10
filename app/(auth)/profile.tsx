@@ -1,11 +1,10 @@
-// Exemplo de Estrutura para profile.tsx Customizado (Não Completo)
-
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, StyleSheet, SafeAreaView, Platform, ScrollView , StatusBar} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, StyleSheet, SafeAreaView, Platform, ScrollView, StatusBar } from 'react-native';
 import { useUser, useClerk } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons'; // Para o ícone de voltar
-import Constants from 'expo-constants'; // Certifique-se de ter 'expo install expo-constants'
+import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
+import { useTheme } from '../../utils/context/themedContext'; // <-- IMPORTAR useTheme AQUI
 
 
 export default function CustomProfile() {
@@ -17,6 +16,8 @@ export default function CustomProfile() {
   const [lastName, setLastName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [loadingSave, setLoadingSave] = useState(false);
+
+  const { theme } = useTheme(); // <-- CHAMAR O HOOK useTheme AQUI!
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -46,7 +47,7 @@ export default function CustomProfile() {
   };
 
   const handleSignOut = async () => {
-    Alert.alert( // Adicionar Alert para confirmação
+    Alert.alert(
       "Confirmar Saída",
       "Tem certeza que deseja sair da sua conta?",
       [
@@ -68,75 +69,74 @@ export default function CustomProfile() {
 
   if (!isLoaded || !user) {
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#38a69d" />
-          <Text style={styles.loadingText}>Carregando perfil...</Text>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}> {/* Cor de fundo do loading */}
+        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}> {/* Cor de fundo do loading */}
+          <ActivityIndicator size="large" color={theme.text} /> {/* Cor do indicador */}
+          <Text style={[styles.loadingText, { color: theme.text }]}>Carregando perfil...</Text> {/* Cor do texto */}
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}> {/* Cor de fundo principal */}
       <View style={styles.container}>
         {/* Header Customizado */}
-        <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : Constants.statusBarHeight + 10 }]}>
+        <View style={[styles.header, { paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : Constants.statusBarHeight + 10, backgroundColor: theme.cardBackground, borderBottomColor: theme.cardBorder }]}> {/* Cores do tema */}
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={28} color="#333" />
+            <Ionicons name="arrow-back" size={28} color={theme.text} /> {/* Cor do ícone */}
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Meu Perfil</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>Meu Perfil</Text> {/* Cor do título */}
           <TouchableOpacity onPress={handleSignOut} style={styles.logoutButton}>
-            <Ionicons name="log-out-outline" size={28} color="#333" />
+            <Ionicons name="log-out-outline" size={28} color={theme.text} /> {/* Cor do ícone */}
           </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Text style={styles.sectionTitle}>Informações Básicas</Text>
-          <Text style={styles.infoText}>Email: {user.emailAddresses[0]?.emailAddress}</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Informações Básicas</Text> {/* Cores do tema */}
+          <Text style={[styles.infoText, { color: theme.text }]}>Email: {user.emailAddresses[0]?.emailAddress}</Text> {/* Cores do tema */}
 
-          <Text style={styles.label}>Nome</Text>
+          <Text style={[styles.label, { color: theme.text }]}>Nome</Text> {/* Cores do tema */}
           <TextInput
             placeholder="Nome"
             value={firstName}
             onChangeText={setFirstName}
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.cardBorder, color: theme.inputText }]} // Cores do input
+            placeholderTextColor={theme.text === '#FFFFFF' ? '#aaa' : '#999'} // Cor do placeholder
           />
-          <Text style={styles.label}>Sobrenome</Text>
+          <Text style={[styles.label, { color: theme.text }]}>Sobrenome</Text>
           <TextInput
             placeholder="Sobrenome"
             value={lastName}
             onChangeText={setLastName}
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.cardBorder, color: theme.inputText }]}
+            placeholderTextColor={theme.text === '#FFFFFF' ? '#aaa' : '#999'}
           />
-          <Text style={styles.label}>Nome da Empresa</Text>
+          <Text style={[styles.label, { color: theme.text }]}>Nome da Empresa</Text>
           <TextInput
             placeholder="Nome da Empresa"
             value={companyName}
             onChangeText={setCompanyName}
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.cardBorder, color: theme.inputText }]}
+            placeholderTextColor={theme.text === '#FFFFFF' ? '#aaa' : '#999'}
           />
 
-          <TouchableOpacity onPress={handleSaveProfile} disabled={loadingSave} style={styles.button}>
-            {loadingSave ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Salvar Alterações</Text>}
+          <TouchableOpacity style={[styles.button, { backgroundColor: theme.buttonPrimaryBg }]} onPress={handleSaveProfile} disabled={loadingSave}> {/* Cor do botão */}
+            {loadingSave ? <ActivityIndicator color={theme.buttonPrimaryText} /> : <Text style={[styles.buttonText, { color: theme.buttonPrimaryText }]}>Salvar Alterações</Text>}
           </TouchableOpacity>
 
-          <Text style={styles.sectionTitle}>Opções de Segurança</Text>
-          {/* Aqui você adicionaria links ou botões para: */}
-          {/* - Mudar Senha: user.updatePassword() */}
-          {/* - Gerenciar Emails: user.createEmailAddress(), emailAddress.destroy() */}
-          {/* - Gerenciar 2FA */}
-          <TouchableOpacity style={styles.securityOptionButton}>
-            <Text style={styles.securityOptionText}>Mudar Senha</Text>
-            <Ionicons name="chevron-forward" size={20} color="#555" />
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Opções de Segurança</Text>
+          <TouchableOpacity style={[styles.securityOptionButton, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]} onPress={() => { /* Navegar para Mudar Senha */ }}> {/* Cores do item */}
+            <Text style={[styles.securityOptionText, { color: theme.text }]}>Mudar Senha</Text>
+            <Ionicons name="chevron-forward" size={20} color={theme.text} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.securityOptionButton}>
-            <Text style={styles.securityOptionText}>Gerenciar Endereços de Email</Text>
-            <Ionicons name="chevron-forward" size={20} color="#555" />
+          <TouchableOpacity style={[styles.securityOptionButton, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]} onPress={() => { /* Navegar para Gerenciar Emails */ }}>
+            <Text style={[styles.securityOptionText, { color: theme.text }]}>Gerenciar Endereços de Email</Text>
+            <Ionicons name="chevron-forward" size={20} color={theme.text} />
           </TouchableOpacity>
           {/* ... outras opções */}
 
-          <TouchableOpacity onPress={handleSignOut} style={styles.redButton}>
+          <TouchableOpacity onPress={handleSignOut} style={[styles.redButton, { backgroundColor: theme.red }]}> {/* Cor do botão (vermelho do tema) */}
             <Text style={styles.redButtonText}>Sair da Conta</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -148,7 +148,7 @@ export default function CustomProfile() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8f8f8',
+    // backgroundColor handled by theme
   },
   container: {
     flex: 1,
@@ -157,12 +157,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f8f8',
+    // backgroundColor handled by theme
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#555',
+    // color handled by theme
   },
   header: {
     flexDirection: 'row',
@@ -170,14 +170,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: '#fff',
+    // backgroundColor handled by theme
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    // borderBottomColor handled by theme
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    flex: 1,
+    textAlign: 'center',
+    // color handled by theme
   },
   backButton: {
     padding: 5,
@@ -187,44 +189,50 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
+    paddingBottom: 40,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginTop: 20,
     marginBottom: 10,
-    color: '#333',
+    // color handled by theme
   },
   infoText: {
     fontSize: 16,
     marginBottom: 10,
-    color: '#555',
+    // color handled by theme
   },
   label: {
     fontSize: 14,
-    color: '#666',
+    // color handled by theme
     marginBottom: 5,
     marginTop: 10,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    // borderColor handled by theme
     padding: 12,
     marginBottom: 15,
     borderRadius: 8,
     fontSize: 16,
-    backgroundColor: '#fff',
+    // backgroundColor handled by theme
+    // color handled by theme
   },
   button: {
-    backgroundColor: '#38a69d',
+    // backgroundColor handled by theme
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 20,
     elevation: 2,
+    shadowColor: '#000', // Sombra geralmente preta/cinza escuro
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   buttonText: {
-    color: '#fff',
+    // color handled by theme
     fontWeight: 'bold',
     fontSize: 18,
   },
@@ -232,19 +240,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fff',
     padding: 15,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#eee',
     marginBottom: 10,
+    // backgroundColor handled by theme
+    // borderColor handled by theme
   },
   securityOptionText: {
     fontSize: 16,
-    color: '#333',
+    // color handled by theme
   },
   redButton: {
-    backgroundColor: '#e53935', // Um vermelho mais suave
+    // backgroundColor handled by theme
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
@@ -252,7 +260,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   redButtonText: {
-    color: '#fff',
+    color: '#fff', // Cor do texto do botão vermelho
     fontWeight: 'bold',
     fontSize: 18,
   },

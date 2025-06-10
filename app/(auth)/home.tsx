@@ -70,8 +70,8 @@ export default function Home() {
             <Feather name="bar-chart-2" size={30} color={theme.text} /> {/* Cor do ícone */}
             <Text style={styles.boxText}>Exportar dados</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.box} onPress={() => router.push("(auth)/gerarQrCode")}>
-            <MaterialIcons name="qr-code" size={30} color={theme.text} /> {/* Cor do ícone */}
+            <TouchableOpacity style={styles.box} onPress={() => router.push("(auth)/scanBarCode")}> {/* <-- CORRIGIDO AQUI! */}
+            <MaterialIcons name="qr-code" size={30} color={theme.text} />
             <Text style={styles.boxText}>Gerar QrCode</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.boxVizu} onPress={() => router.push("(auth)/VizuEstoq")}>

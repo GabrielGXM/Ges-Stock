@@ -1,9 +1,12 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, Modal, TextInput, ScrollView, SafeAreaView, Platform, StatusBar } from 'react-native';
 import { useAuth } from '@clerk/clerk-expo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
+import { useTheme } from '../../utils/context/themedContext'; // Importar useTheme
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 // Converte um número inteiro (centavos) para uma string de moeda formatada ($X.XX)
 const formatCentsToCurrency = (cents: number): string => {
@@ -44,6 +47,9 @@ interface Produto {
 
 export default function VisualizarEstoque() {
   const { userId, isLoaded } = useAuth();
+  const router = useRouter(); // 2. INICIAR O ROUTER
+  const params = useLocalSearchParams<{ openProductWithId?: string }>(); // 3. PEGAR OS PARÂMETROS DA ROTA
+
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +64,8 @@ export default function VisualizarEstoque() {
 
   // Variável de estado para o modal de seleção de categoria (dentro do modal de edição)
   const [categorySelectModalVisible, setCategorySelectModalVisible] = useState(false);
+
+  const { theme } = useTheme(); // CHAMAR O HOOK useTheme AQUI!
 
 
   // Chaves para AsyncStorage
@@ -93,6 +101,18 @@ export default function VisualizarEstoque() {
       setLoading(false);
     }
   }, [userId, PRODUTOS_ASYNC_KEY, CATEGORIAS_ASYNC_KEY]);
+
+  // 4. ADICIONAR ESTE NOVO useEffect PARA ABRIR O MODAL
+  useEffect(() => {
+    if (params.openProductWithId && produtos.length > 0) {
+      const productToOpen = produtos.find(p => p.id === params.openProductWithId);
+      if (productToOpen) {
+        handleEditPress(productToOpen);
+        // Limpa o parâmetro para não reabrir o modal se a tela for atualizada
+        router.setParams({ openProductWithId: '' }); 
+      }
+    }
+  }, [params.openProductWithId, produtos]);
 
   useEffect(() => {
     if (isLoaded && userId) {
@@ -188,43 +208,43 @@ export default function VisualizarEstoque() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#38a69d" />
-        <Text style={styles.loadingText}>Carregando estoque...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.text} />
+        <Text style={[styles.loadingText, { color: theme.text }]}>Carregando estoque...</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <View style={styles.container}>
         <Text
           style={[
             styles.headerText,
-            { paddingTop: (Constants.statusBarHeight || 0) + 10 }
+            { paddingTop: (Constants.statusBarHeight || 0) + 10, color: theme.text } // Aplicar cor do tema
           ]}
         >
           Estoque Atual
         </Text>
         {produtos.length === 0 ? (
-          <Text style={styles.emptyListText}>Nenhum produto cadastrado ainda.</Text>
+          <Text style={[styles.emptyListText, { color: theme.text }]}>Nenhum produto cadastrado ainda.</Text>
         ) : (
           <FlatList
             data={produtos}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <View style={styles.productCard}>
+              <View style={[styles.productCard, { backgroundColor: theme.cardBackground, borderColor: theme.cardBorder }]}>
                 <View style={styles.productInfo}>
-                  <Text style={styles.productName}>{item.nome}</Text>
-                  <Text>Qtde: {item.quantidade} | Preço: {formatCentsToCurrency(Math.round(item.preco * 100))}</Text>
-                  <Text>Categoria: {getCategoryName(item.categoriaId)}</Text>
+                  <Text style={[styles.productName, { color: theme.text }]}>{item.nome}</Text>
+                  <Text style={[{ color: theme.text }]}>Qtde: {item.quantidade} | Preço: {formatCentsToCurrency(Math.round(item.preco * 100))}</Text>
+                  <Text style={[{ color: theme.text }]}>Categoria: {getCategoryName(item.categoriaId)}</Text>
                 </View>
                 <View style={styles.productActions}>
                   <TouchableOpacity onPress={() => handleEditPress(item)} style={styles.actionButton}>
-                    <MaterialIcons name="edit" size={24} color="#38a69d" />
+                    <MaterialIcons name="edit" size={24} color={theme.buttonPrimaryBg} />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => handleDeleteProduct(item.id, item.nome)} style={styles.actionButton}>
-                    <MaterialIcons name="delete" size={24} color="red" />
+                    <MaterialIcons name="delete" size={24} color={theme.red} /> {/* Usar theme.red */}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -237,41 +257,44 @@ export default function VisualizarEstoque() {
       {/* Modal de Edição de Produto */}
       <Modal visible={editModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Editar Produto</Text>
+          <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Editar Produto</Text>
             <ScrollView contentContainerStyle={styles.modalScrollView}>
               <TextInput
                 placeholder="Nome do produto"
-                style={styles.input}
+                style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.cardBorder, color: theme.inputText }]}
+                placeholderTextColor={theme.text === '#FFFFFF' ? '#aaa' : '#999'}
                 value={editedProductName}
                 onChangeText={setEditedProductName}
               />
               <TextInput
                 placeholder="Quantidade"
-                style={styles.input}
+                style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.cardBorder, color: theme.inputText }]}
+                placeholderTextColor={theme.text === '#FFFFFF' ? '#aaa' : '#999'}
                 keyboardType="numeric"
                 value={editedProductQuantity}
                 onChangeText={setEditedProductQuantity}
               />
               <TextInput
                 placeholder="Preço ($0.00)"
-                style={styles.input}
+                style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.cardBorder, color: theme.inputText }]}
+                placeholderTextColor={theme.text === '#FFFFFF' ? '#aaa' : '#999'}
                 keyboardType="numeric"
                 value={formatCentsToCurrency(editedProductPriceCents)}
                 onChangeText={(text) => setEditedProductPriceCents(parseCurrencyInputToCents(text))}
               />
 
               {/* Seleção de Categoria dentro do Modal de Edição */}
-              <TouchableOpacity onPress={() => setCategorySelectModalVisible(true)} style={styles.inputSelect}>
-                <Text style={editedProductCategory ? styles.selectedText : styles.placeholderText}>
+              <TouchableOpacity onPress={() => setCategorySelectModalVisible(true)} style={[styles.inputSelect, { backgroundColor: theme.inputBackground, borderColor: theme.cardBorder }]}>
+                <Text style={editedProductCategory ? { color: theme.inputText } : { color: theme.text === '#FFFFFF' ? '#aaa' : '#999' }}>
                   {editedProductCategory ? editedProductCategory.nome : 'Selecionar categoria'}
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.button} onPress={handleSaveEdit}>
+              <TouchableOpacity style={[styles.button, { backgroundColor: theme.buttonPrimaryBg }]} onPress={handleSaveEdit}>
                 <Text style={styles.buttonText}>Salvar Edição</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.buttonCancel} onPress={() => setEditModalVisible(false)}>
+              <TouchableOpacity style={[styles.buttonCancel, { backgroundColor: theme.buttonSecondaryBg }]} onPress={() => setEditModalVisible(false)}>
                 <Text style={styles.buttonTextCancel}>Cancelar</Text>
               </TouchableOpacity>
             </ScrollView>
@@ -282,10 +305,10 @@ export default function VisualizarEstoque() {
       {/* Modal de Seleção de Categoria */}
       <Modal visible={categorySelectModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Selecione uma Categoria</Text>
+          <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Selecione uma Categoria</Text>
             {categorias.length === 0 ? (
-              <Text style={styles.emptyCategoriesText}>Nenhuma categoria disponível.</Text>
+              <Text style={[styles.emptyCategoriesText, { color: theme.text }]}>Nenhuma categoria disponível.</Text>
             ) : (
               <ScrollView>
                 {categorias.map((cat) => (
@@ -295,14 +318,14 @@ export default function VisualizarEstoque() {
                       setEditedProductCategory(cat);
                       setCategorySelectModalVisible(false);
                     }}
-                    style={styles.modalItem}
+                    style={[styles.modalItem, { borderBottomColor: theme.cardBorder }]}
                   >
-                    <Text>{cat.nome}</Text>
+                    <Text style={{ color: theme.text }}>{cat.nome}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
             )}
-            <TouchableOpacity onPress={() => setCategorySelectModalVisible(false)} style={styles.closeModalButton}>
+            <TouchableOpacity style={[styles.closeModalButton, { backgroundColor: theme.buttonSecondaryBg }]} onPress={() => setCategorySelectModalVisible(false)}>
               <Text style={styles.closeModalButtonText}>Fechar</Text>
             </TouchableOpacity>
           </View>
@@ -315,7 +338,7 @@ export default function VisualizarEstoque() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8f8f8',
+    // backgroundColor handled by theme
   },
   container: {
     flex: 1,
@@ -329,44 +352,38 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
-    color: '#333',
+    // color handled by theme
     textAlign: 'center',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f8f8',
+    // backgroundColor handled by theme
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#555',
+    // color handled by theme
   },
-  emptyListText: { // <<---- Este estilo estava correto aqui
+  emptyListText: {
     textAlign: 'center',
     marginTop: 50,
     fontSize: 16,
-    color: '#777',
-  },
-  emptyCategoriesText: {
-  textAlign: 'center',
-  marginTop: 10,
-  color: '#777',
-  fontStyle: 'italic',
+    // color handled by theme
   },
   productCard: {
-    backgroundColor: '#fff',
+    // backgroundColor handled by theme
     padding: 15,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#eee',
+    // borderColor handled by theme
     marginBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     elevation: 1,
-    shadowColor: '#000',
+    shadowColor: '#000', // Sombra geralmente preta/cinza escuro
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 1,
@@ -378,6 +395,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 5,
+    // color handled by theme
   },
   productActions: {
     flexDirection: 'row',
@@ -391,10 +409,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.5)', // Geralmente preto semi-transparente
   },
   modalContent: {
-    backgroundColor: 'white',
+    // backgroundColor handled by theme
     padding: 20,
     borderRadius: 10,
     width: '90%',
@@ -405,41 +423,42 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 15,
     textAlign: 'center',
-    color: '#333',
+    // color handled by theme
   },
   modalScrollView: {
     paddingBottom: 10,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    // borderColor handled by theme
     borderRadius: 8,
     height: 50,
     paddingHorizontal: 15,
     marginBottom: 15,
     fontSize: 16,
-    backgroundColor: '#fff',
+    // backgroundColor handled by theme
+    // color handled by theme
   },
   inputSelect: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    // borderColor handled by theme
     borderRadius: 8,
     height: 50,
     paddingHorizontal: 15,
     justifyContent: 'center',
     marginBottom: 15,
-    backgroundColor: '#fff',
+    // backgroundColor handled by theme
   },
   placeholderText: {
-    color: '#999',
+    // color handled by theme (via conditional inline style)
     fontSize: 16,
   },
   selectedText: {
-    color: '#333',
+    // color handled by theme (via conditional inline style)
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#38a69d',
+    // backgroundColor handled by theme
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
@@ -450,36 +469,48 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
+  buttonDisabled: {
+    backgroundColor: '#a0a0a0',
+  },
+  buttonText: {
+    color: '#fff', // Cor do texto do botão (pode ser theme.buttonPrimaryText)
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
   buttonCancel: {
-    backgroundColor: '#e0e0e0',
+    // backgroundColor handled by theme
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
   },
-  buttonText: { // <<---- Este estilo estava correto aqui
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 18,
-  },
   buttonTextCancel: {
-    color: '#333',
+    color: '#333', // Cor do texto do botão (pode ser theme.buttonSecondaryText)
     fontWeight: 'bold',
     fontSize: 18,
   },
   modalItem: {
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    // borderBottomColor handled by theme
   },
+
+  emptyCategoriesText: {
+  textAlign: 'center',
+  marginTop: 10,
+  color: '#777',
+  fontStyle: 'italic',
+  },
+
   closeModalButton: {
     marginTop: 20,
-    backgroundColor: '#e0e0e0',
+    // backgroundColor handled by theme
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
   closeModalButtonText: {
-    color: '#333',
+    // color handled by theme
     fontWeight: 'bold',
+    fontSize: 18,
   },
 });

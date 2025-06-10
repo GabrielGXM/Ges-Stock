@@ -1,9 +1,11 @@
-import { Modal, Alert, Platform, SafeAreaView } from 'react-native'; // REMOVER StatusBar daqui
+import { Modal, Alert, Platform, SafeAreaView } from 'react-native';
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useAuth } from "@clerk/clerk-expo";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants'; // Certifique-se de ter 'expo install expo-constants'
+import Constants from 'expo-constants';
+import { useTheme } from '../../utils/context/themedContext'; // <-- IMPORTAR useTheme AQUI
+
 
 // Converte um número inteiro (centavos) para uma string de moeda formatada ($X.XX)
 const formatCentsToCurrency = (cents: number): string => {
@@ -30,7 +32,7 @@ const parseCurrencyInputToCents = (text: string): number => {
 interface Categoria {
   id: string;
   nome: string;
-  userId: string; // Adicionado para identificar categorias por usuário
+  userId: string;
 }
 
 interface Produto {
@@ -38,8 +40,8 @@ interface Produto {
   nome: string;
   quantidade: number;
   preco: number;
-  categoriaId: string; // Renomeado de categoria_id para consistência com JS
-  userId: string; // Adicionado para identificar produtos por usuário
+  categoriaId: string;
+  userId: string;
 }
 
 export default function CadastroProduto() {
@@ -52,6 +54,8 @@ export default function CadastroProduto() {
   const [categoriasDisponiveis, setCategoriasDisponiveis] = useState<Categoria[]>([]);
   const [loadingCategorias, setLoadingCategorias] = useState(true);
   const [savingProduct, setSavingProduct] = useState(false);
+
+  const { theme } = useTheme(); // <-- CHAMAR O HOOK useTheme AQUI!
 
   // Chaves para AsyncStorage
   const CATEGORIAS_ASYNC_KEY = `user_${userId}_categorias`;
@@ -131,57 +135,71 @@ export default function CadastroProduto() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text
           style={[
             styles.headerText,
-            { paddingTop: (Constants.statusBarHeight || 0) + 10 } // USAR SOMENTE Constants.statusBarHeight
+            { paddingTop: (Constants.statusBarHeight || 0) + 10, color: theme.text }
           ]}
         >
           Cadastrar Produto
         </Text>
-        <TextInput placeholder="Nome do produto" style={styles.input} value={nome} onChangeText={setNome} />
-        <TextInput placeholder="Quantidade" style={styles.input} keyboardType="numeric" value={quantidade} onChangeText={setQuantidade} />
-        <TextInput // CAMPO DE PREÇO FORMATADO
+        <TextInput
+          placeholder="Nome do produto"
+          style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.cardBorder, color: theme.inputText }]}
+          placeholderTextColor={theme.text === '#FFFFFF' ? '#aaa' : '#999'}
+          value={nome}
+          onChangeText={setNome}
+        />
+        <TextInput
+          placeholder="Quantidade"
+          style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.cardBorder, color: theme.inputText }]}
+          placeholderTextColor={theme.text === '#FFFFFF' ? '#aaa' : '#999'}
+          keyboardType="numeric"
+          value={quantidade}
+          onChangeText={setQuantidade}
+        />
+        <TextInput
           placeholder="Preço ($0.00)"
-          style={styles.input}
+          style={[styles.input, { backgroundColor: theme.inputBackground, borderColor: theme.cardBorder, color: theme.inputText }]}
+          placeholderTextColor={theme.text === '#FFFFFF' ? '#aaa' : '#999'}
           keyboardType="numeric"
           value={formatCentsToCurrency(precoCents)}
           onChangeText={(text) => setPrecoCents(parseCurrencyInputToCents(text))}
         />
 
         {loadingCategorias ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color="#38a69d" />
-            <Text style={{ marginLeft: 10 }}>Carregando categorias...</Text>
+          <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+            <ActivityIndicator size="small" color={theme.text} />
+            <Text style={[{ marginLeft: 10, color: theme.text }]}>Carregando categorias...</Text>
           </View>
         ) : (
-          <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.inputSelect}>
-            <Text style={selectedCategoria ? styles.selectedText : styles.placeholderText}>
+          <TouchableOpacity onPress={() => setModalVisible(true)} style={[styles.inputSelect, { backgroundColor: theme.inputBackground, borderColor: theme.cardBorder }]}>
+            <Text style={selectedCategoria ? { color: theme.inputText } : { color: theme.text === '#FFFFFF' ? '#aaa' : '#999' }}>
               {selectedCategoria ? selectedCategoria.nome : 'Selecionar categoria'}
             </Text>
           </TouchableOpacity>
         )}
 
         <TouchableOpacity
-          style={[styles.button, savingProduct && styles.buttonDisabled]}
+          style={[styles.button, { backgroundColor: theme.buttonPrimaryBg }, savingProduct && styles.buttonDisabled]}
           onPress={handleSalvar}
           disabled={savingProduct}
         >
           {savingProduct ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={theme.buttonPrimaryText} />
           ) : (
-            <Text style={styles.buttonText}>Salvar</Text>
+            <Text style={[styles.buttonText, { color: theme.buttonPrimaryText }]}>Salvar</Text>
           )}
         </TouchableOpacity>
 
         <Modal visible={modalVisible} animationType="slide" transparent={true}>
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Selecione uma Categoria</Text>
+            <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Selecione uma Categoria</Text>
               {categoriasDisponiveis.length === 0 ? (
-                <Text style={styles.emptyCategoriesText}>Nenhuma categoria disponível. Cadastre uma categoria primeiro.</Text>
+                <Text style={[styles.emptyCategoriesText, { color: theme.text }]}>Nenhuma categoria disponível. Cadastre uma categoria primeiro.</Text>
               ) : (
                 <ScrollView>
                   {categoriasDisponiveis.map((cat) => (
@@ -191,15 +209,15 @@ export default function CadastroProduto() {
                         setSelectedCategoria(cat);
                         setModalVisible(false);
                       }}
-                      style={styles.modalItem}
+                      style={[styles.modalItem, { borderBottomColor: theme.cardBorder }]}
                     >
-                      <Text>{cat.nome}</Text>
+                      <Text style={{ color: theme.text }}>{cat.nome}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
               )}
-              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeModalButton}>
-                <Text style={styles.closeModalButtonText}>Fechar</Text>
+              <TouchableOpacity style={[styles.closeModalButton, { backgroundColor: theme.buttonSecondaryBg }]} onPress={() => setModalVisible(false)}>
+                <Text style={[styles.closeModalButtonText, { color: theme.buttonSecondaryText }]}>Fechar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -212,7 +230,7 @@ export default function CadastroProduto() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8f8f8',
+    // backgroundColor handled by theme
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -223,39 +241,40 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
-    color: '#333',
+    // color handled by theme
     textAlign: 'center',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    // borderColor handled by theme
     borderRadius: 8,
     height: 50,
     paddingHorizontal: 15,
     marginBottom: 20,
     fontSize: 16,
-    backgroundColor: '#fff',
+    // backgroundColor handled by theme
+    // color handled by theme
   },
   inputSelect: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    // borderColor handled by theme
     borderRadius: 8,
     height: 50,
     paddingHorizontal: 15,
     justifyContent: 'center',
     marginBottom: 20,
-    backgroundColor: '#fff',
+    // backgroundColor handled by theme
   },
   placeholderText: {
-    color: '#999',
+    // color handled by theme (via conditional inline style)
     fontSize: 16,
   },
   selectedText: {
-    color: '#333',
+    // color handled by theme (via conditional inline style)
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#38a69d',
+    // backgroundColor handled by theme
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
@@ -269,7 +288,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#a0a0a0',
   },
   buttonText: {
-    color: '#fff',
+    // color handled by theme (via conditional inline style)
     fontWeight: 'bold',
     fontSize: 18,
   },
@@ -280,7 +299,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContent: {
-    backgroundColor: 'white',
+    // backgroundColor handled by theme
     padding: 20,
     borderRadius: 10,
     width: '85%',
@@ -291,35 +310,37 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 15,
     textAlign: 'center',
-    color: '#333',
+    // color handled by theme
   },
   modalItem: {
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    // borderBottomColor handled by theme
   },
   emptyCategoriesText: {
     textAlign: 'center',
     marginTop: 10,
-    color: '#777',
+    fontSize: 16,
+    // color handled by theme
     fontStyle: 'italic',
   },
   closeModalButton: {
     marginTop: 20,
-    backgroundColor: '#e0e0e0',
+    // backgroundColor handled by theme
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
   closeModalButtonText: {
-    color: '#333',
+    // color handled by theme
     fontWeight: 'bold',
+    fontSize: 18,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
-    paddingVertical: 10,
+    flex: 1,
+    // backgroundColor handled by theme
   }
 });

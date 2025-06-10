@@ -11,6 +11,9 @@ export const lightTheme = {
   buttonPrimaryText: Colors.white,
   buttonSecondaryBg: Colors.grayLight,
   buttonSecondaryText: Colors.grayDark,
+  red: Colors.red,       
+  green: Colors.green,
+  grayDark: Colors.grayDark,
   // Adicione mais cores conforme a necessidade do seu design
 };
 
@@ -25,6 +28,9 @@ export const darkTheme = {
   buttonPrimaryText: Colors.white,
   buttonSecondaryBg: '#333',
   buttonSecondaryText: Colors.white,
+  red: Colors.red,       
+  green: Colors.green,
+  grayDark: Colors.grayDark,
   // Adicione mais cores específicas para o tema escuro
 };
 
