@@ -14,6 +14,7 @@ export const lightTheme = {
   red: Colors.red,       
   green: Colors.green,
   grayDark: Colors.grayDark,
+  accent: Colors.accent,
   // Adicione mais cores conforme a necessidade do seu design
 };
 
@@ -31,6 +32,7 @@ export const darkTheme = {
   red: Colors.red,       
   green: Colors.green,
   grayDark: Colors.grayDark,
+  accent: Colors.accent,
   // Adicione mais cores específicas para o tema escuro
 };
 
