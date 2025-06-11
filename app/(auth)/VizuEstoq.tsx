@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useTheme } from '../../utils/context/themedContext'; // Importar useTheme
-import { useLocalSearchParams, useRouter } from 'expo-router';
+
 
 // Converte um número inteiro (centavos) para uma string de moeda formatada ($X.XX)
 const formatCentsToCurrency = (cents: number): string => {
@@ -47,8 +47,6 @@ interface Produto {
 
 export default function VisualizarEstoque() {
   const { userId, isLoaded } = useAuth();
-  const router = useRouter(); // 2. INICIAR O ROUTER
-  const params = useLocalSearchParams<{ openProductWithId?: string }>(); // 3. PEGAR OS PARÂMETROS DA ROTA
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -101,18 +99,6 @@ export default function VisualizarEstoque() {
       setLoading(false);
     }
   }, [userId, PRODUTOS_ASYNC_KEY, CATEGORIAS_ASYNC_KEY]);
-
-  // 4. ADICIONAR ESTE NOVO useEffect PARA ABRIR O MODAL
-  useEffect(() => {
-    if (params.openProductWithId && produtos.length > 0) {
-      const productToOpen = produtos.find(p => p.id === params.openProductWithId);
-      if (productToOpen) {
-        handleEditPress(productToOpen);
-        // Limpa o parâmetro para não reabrir o modal se a tela for atualizada
-        router.setParams({ openProductWithId: '' }); 
-      }
-    }
-  }, [params.openProductWithId, produtos]);
 
   useEffect(() => {
     if (isLoaded && userId) {
